@@ -1,5 +1,7 @@
 import { CollectionConfig } from 'payload';
 import { isValidEmail, isValidDate, isValidSymbol } from '@/utils/validators';
+import { StockService } from '@/services/stockService';
+import { convertToCsv } from '@/utils/csvHelper';
 
 export const StockRequests: CollectionConfig = {
   slug: 'stock-requests',
@@ -118,38 +120,39 @@ export const StockRequests: CollectionConfig = {
     },
   ],
   hooks: {
-    // afterChange: [
-    //   async ({ doc }) => {
-    //     // Process the stock request
-    //     try {
-    //       const stockService = new StockService();
-    //       const emailService = new EmailService();
+    afterChange: [
+      async ({ doc }) => {
+        // Process the stock request
+        try {
+          const stockService = new StockService();
+        //   const emailService = new EmailService();
           
-    //       const stockData = await stockService.getHistoricalData(
-    //         doc.companySymbol,
-    //         doc.startDate,
-    //         doc.endDate
-    //       );
+          const stockData = await stockService.getHistoricalData(
+            doc.companySymbol,
+            doc.startDate,
+            doc.endDate
+          );
           
-    //       const csvData = await csvHelper.convertToCsv(stockData);
-    //       await emailService.sendStockReport(doc.email, doc.companySymbol, doc.startDate, doc.endDate, csvData);
+          const csvData =  convertToCsv(stockData);
+          console.log('data------', csvData);
+        //   await emailService.sendStockReport(doc.email, doc.companySymbol, doc.startDate, doc.endDate, csvData);
           
-    //       // Update status to completed
-    //       await payload.update({
-    //         collection: 'stock-requests',
-    //         id: doc.id,
-    //         data: { status: 'completed' },
-    //       });
-    //     } catch (error) {
-    //       // Update status to failed
-    //       await payload.update({
-    //         collection: 'stock-requests',
-    //         id: doc.id,
-    //         data: { status: 'failed' },
-    //       });
-    //       throw error;
-    //     }
-    //   },
-    // ],
+          // Update status to completed
+        //   await payload.update({
+        //     collection: 'stock-requests',
+        //     id: doc.id,
+        //     data: { status: 'completed' },
+        //   });
+        } catch (error) {
+          // Update status to failed
+        //   await payload.update({
+        //     collection: 'stock-requests',
+        //     id: doc.id,
+        //     data: { status: 'failed' },
+        //   });
+          throw error;
+        }
+      },
+    ],
   },
 };
