@@ -2,6 +2,7 @@ import { CollectionConfig } from 'payload';
 import { isValidEmail, isValidDate, isValidSymbol } from '@/utils/validators';
 import { StockService } from '@/services/stockService';
 import { convertToCsv } from '@/utils/csvHelper';
+import { EmailService } from '@/services/emailService';
 
 export const StockRequests: CollectionConfig = {
   slug: 'stock-requests',
@@ -122,10 +123,11 @@ export const StockRequests: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc }) => {
+        console.log('doc--------==========', doc);
         // Process the stock request
         try {
           const stockService = new StockService();
-        //   const emailService = new EmailService();
+          const emailService = new EmailService();
           
           const stockData = await stockService.getHistoricalData(
             doc.companySymbol,
@@ -134,8 +136,8 @@ export const StockRequests: CollectionConfig = {
           );
           
           const csvData =  convertToCsv(stockData);
-          console.log('data------', csvData);
-        //   await emailService.sendStockReport(doc.email, doc.companySymbol, doc.startDate, doc.endDate, csvData);
+          console.log('csvData--------==========', csvData);
+          await emailService.sendStockReport(doc.email, doc.companySymbol, doc.startDate, doc.endDate, csvData);
           
           // Update status to completed
         //   await payload.update({
