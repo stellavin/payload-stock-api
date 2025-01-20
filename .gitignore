@@ -39,5 +39,9 @@ yarn-error.log*
 next-env.d.ts
 
 .env
+.pnpm-store/
+.pnpm-store
+.vscode/
+.vscode
 
 /media
