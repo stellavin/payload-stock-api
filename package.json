@@ -22,7 +22,8 @@
     "cross-env": "^7.0.3",
     "graphql": "^16.8.1",
     "next": "15.1.5",
-    "payload": "latest",
+    "nodemailer": "^6.9.16",
+    "payload": "^3.17.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "sharp": "0.32.6"
@@ -30,7 +31,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@types/node": "^22.5.4",
-    "@types/nodemailer": "^6.4.17",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
     "eslint": "^9.16.0",

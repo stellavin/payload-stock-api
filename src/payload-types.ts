@@ -95,6 +95,21 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StockRequest".
+ */
+export interface StockRequest {
+  id: string;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  companySymbol: string;
+  startDate: string;
+  endDate: string;
+  email: string;
+  status: 'pending' | 'completed' | 'failed';
+};
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
