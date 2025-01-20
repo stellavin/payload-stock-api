@@ -23,34 +23,75 @@ export const StockRequests: CollectionConfig = {
         type: 'date',
         required: true,
         validate: async (
-            value: Date | null | undefined,
-            { data }: { data: { endDate?: Date | null | undefined } }
+          value: Date | null | undefined,
+          { data }: { data: { endDate?: Date | null | undefined } }
         ): Promise<string | true> => {
-            if (!(value instanceof Date) || isNaN(value.getTime())) {
-            return 'Invalid date format';
-            }
-            if (value > new Date()) {
-            return 'Start date cannot be in the future';
-            }
-            if (data.endDate && value > data.endDate) {
-            return 'Start date must be before end date';
-            }
-            return true;
+          // Check if the value is null or undefined
+          if (value === null || value === undefined) {
+            return 'Start Date is required';
+          }
+      
+          // If value is a string, validate it using the isValidDate utility function
+        //   if (typeof value === 'string' && !isValidDate(value)) {
+        //     return 'Invalid Start Date format. Expected format: YYYY-mm-dd';
+        //   }
+      
+          // If value is a Date object, check if it's valid
+          if (value instanceof Date && isNaN(value.getTime())) {
+            return 'Invalid Start Date';
+          }
+      
+          // Ensure Start Date is not in the future
+          if (value instanceof Date && value > new Date()) {
+            return 'Start Date cannot be in the future';
+          }
+      
+          // Ensure Start Date is before or equal to End Date
+          if (data.endDate && value instanceof Date && value > data.endDate) {
+            return 'Start Date must be before or equal to End Date';
+          }
+      
+          return true;
         },
+        // defaultValue: () => new Date().toISOString().split('T')[0],
       },
+      
       {
         name: 'endDate',
         type: 'date',
         required: true,
-        validate: async (value: Date | null | undefined): Promise<string | true> => {
-          if (!(value instanceof Date) || isNaN(value.getTime())) {
-            return 'Invalid date format';
+        validate: async (
+          value: Date | null | undefined,
+          { data }: { data: { startDate?: Date | null | undefined } }
+        ): Promise<string | true> => {
+          // Check if the value is null or undefined
+          if (value === null || value === undefined) {
+            return 'End Date is required';
           }
-          if (value > new Date()) {
-            return 'End date cannot be in the future';
+      
+          // If value is a string, validate it using the isValidDate utility function
+        //   if (typeof value === 'string' && !isValidDate(value)) {
+        //     return 'Invalid End Date format. Expected format: YYYY-mm-dd';
+        //   }
+      
+          // If value is a Date object, check if it's valid
+          if (value instanceof Date && isNaN(value.getTime())) {
+            return 'Invalid End Date';
           }
+      
+          // Ensure End Date is not in the future
+          if (value instanceof Date && value > new Date()) {
+            return 'End Date cannot be in the future';
+          }
+      
+          // Ensure End Date is after or equal to Start Date
+          if (data.startDate && value instanceof Date && value < data.startDate) {
+            return 'End Date must be after or equal to Start Date';
+          }
+      
           return true;
         },
+        // defaultValue: () => new Date().toISOString().split('T')[0],
       },
     {
       name: 'email',
