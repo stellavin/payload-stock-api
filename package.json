@@ -31,6 +31,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "sharp": "0.32.6",
+    "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
   },
