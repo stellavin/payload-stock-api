@@ -1,6 +1,6 @@
 # Stock Data API with Payload CMS
 
-A robust API service built with Payload CMS and Node.js that fetches historical stock data and sends email reports. The service validates company symbols against NASDAQ listings and uses the Yahoo Finance API for historical data.
+A robust API service built with Payload CMS that fetches historical stock data and sends email reports. The service validates company symbols against NASDAQ listings and uses the Yahoo Finance API for historical data.
 
 ## Features
 
@@ -24,8 +24,8 @@ A robust API service built with Payload CMS and Node.js that fetches historical 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/stock-data-api.git
-cd stock-data-api
+git clone https://github.com/stellavin/payload-stock-api.git
+cd payload-stock-api
 ```
 
 2. Install dependencies:
@@ -33,16 +33,22 @@ cd stock-data-api
 npm install
 ```
 
-3. Create `.env` file:
+3. Create `.env` file check the email I sent it has the env credentials:
 ```env
-MONGODB_URI=mongodb://localhost:27017/stock-app
-PAYLOAD_SECRET=your-secret-key
-RAPID_API_KEY=your-rapidapi-key
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=your-smtp-user
-SMTP_PASS=your-smtp-password
-SMTP_FROM=noreply@example.com
+DATABASE_URI=
+PAYLOAD_SECRET=
+RAPID_API_KEY=
+API_HOST=
+RAPID_API_URL=
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=
+SMTP_FROM=
+CLIENT_ID=
+REFRESH_TOKEN=
+REDIRECT_URL=
+ACCESS_TOKEN=
+NASDAQ_API=''
 ```
 
 ## Running the Application
@@ -54,7 +60,7 @@ SMTP_FROM=noreply@example.com
 docker-compose up --build
 ```
 
-The application will be available at `http://localhost:3000`
+The application will be available at `http://localhost:3000/admin`
 
 ### Without Docker
 
@@ -102,8 +108,6 @@ npm run test:watch
 src/
 ├── collections/          # Payload CMS collections
 │   └── StockRequests.ts
-├── endpoints/           # Custom API endpoints
-│   └── stockData.ts
 ├── services/           # Business logic services
 │   ├── emailService.ts
 │   └── stockService.ts
@@ -123,21 +127,6 @@ src/
 - `npm run lint`: Run ESLint
 - `npm run format`: Format code with Prettier
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| MONGODB_URI | MongoDB connection string | Yes |
-| PAYLOAD_SECRET | Secret key for Payload CMS | Yes |
-| RAPID_API_KEY | RapidAPI key for Yahoo Finance | Yes |
-| SMTP_HOST | SMTP server host | Yes |
-| SMTP_PORT | SMTP server port | Yes |
-| SMTP_USER | SMTP username | Yes |
-| SMTP_PASS | SMTP password | Yes |
-| SMTP_FROM | Sender email address | Yes |
-
 ## API Endpoints
 
 | Method | Endpoint | Description |
@@ -152,14 +141,6 @@ src/
 - Start Date: Required, format YYYY-MM-DD, must be before or equal to End Date
 - End Date: Required, format YYYY-MM-DD, must be after or equal to Start Date
 - Email: Required, must be a valid email format
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## Error Handling
 
