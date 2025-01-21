@@ -1,5 +1,5 @@
 import { CollectionConfig, Payload } from 'payload';
-import { isValidEmail, isValidDate, isValidSymbol } from '@/utils/validators';
+import { isValidEmail, isValidDate, isValidSymbol, convertDate } from '@/utils/validators';
 import { StockService } from '@/services/stockService';
 import { convertToCsv } from '@/utils/csvHelper';
 import { EmailService } from '@/services/emailService';
@@ -8,8 +8,8 @@ import { EmailService } from '@/services/emailService';
 type StockRequest = {
   id: string;
   companySymbol: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
   email: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage?: string;
@@ -22,6 +22,44 @@ export const StockRequests: CollectionConfig = {
   slug: 'stock-requests',
   admin: {
     useAsTitle: 'companySymbol',
+  },
+  hooks: {
+    afterChange: [
+      async ({ doc, req, operation }) => {
+
+        if(operation === 'create') {
+            // Type assertion for the document
+            const stockRequest = doc as StockRequest;
+            try {
+                const stockService = new StockService();
+                const emailService = new EmailService();
+                
+                // Get stock data - convert dates to ISO strings
+                const stockData = await stockService.getHistoricalData(
+                    stockRequest.companySymbol,
+                    convertDate(stockRequest.startDate),
+                    convertDate(stockRequest.endDate)
+                );
+                
+                // Convert to CSV and send email
+                const csvData = convertToCsv(stockData);
+                console.log('csvData', csvData);
+                await emailService.sendStockReport(
+                    stockRequest.email, 
+                    stockRequest.companySymbol, 
+                    convertDate(stockRequest.startDate),
+                    convertDate(stockRequest.endDate), 
+                    csvData
+                );
+           
+            } catch (error) {
+                // Update status to failed with error message
+                throw error;
+            }
+                
+        }
+      },
+    ],
   },
   fields: [
     {
@@ -146,73 +184,5 @@ export const StockRequests: CollectionConfig = {
       },
     }
   ],
-  hooks: {
-    afterChange: [
-      async ({ doc, req, operation }) => {
-        // Type assertion for the document
-        const stockRequest = doc as StockRequest;
-        
-        // Only process if it's a create operation or status is pending
-        if (operation !== 'create' && stockRequest.status !== 'pending') {
-          return;
-        }
-
-        const payload = req.payload as Payload;
-
-        try {
-          // Update status to processing
-          await payload.update<any, UpdateableFields>({
-            collection: 'stock-requests',
-            id: stockRequest.id,
-            data: {
-              status: 'processing',
-              errorMessage: null
-            },
-          });
-
-          const stockService = new StockService();
-          const emailService = new EmailService();
-          
-          // Get stock data - convert dates to ISO strings
-          const stockData = await stockService.getHistoricalData(
-            stockRequest.companySymbol,
-            stockRequest.startDate.toISOString().split('T')[0],
-            stockRequest.endDate.toISOString().split('T')[0]
-          );
-          
-          // Convert to CSV and send email
-          const csvData = convertToCsv(stockData);
-          await emailService.sendStockReport(
-            stockRequest.email, 
-            stockRequest.companySymbol, 
-            stockRequest.startDate.toISOString().split('T')[0], 
-            stockRequest.endDate.toISOString().split('T')[0], 
-            csvData
-          );
-          
-          // Update status to completed
-          await payload.update<any, UpdateableFields>({
-            collection: 'stock-requests',
-            id: stockRequest.id,
-            data: {
-              status: 'completed',
-              errorMessage: null
-            },
-          });
-        } catch (error) {
-          // Update status to failed with error message
-          await payload.update<any, UpdateableFields>({
-            collection: 'stock-requests',
-            id: stockRequest.id,
-            data: {
-              status: 'failed',
-              errorMessage: error instanceof Error ? error.message : 'An unexpected error occurred'
-            },
-          });
-          
-          throw error;
-        }
-      },
-    ],
-  },
+  
 };
