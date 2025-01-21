@@ -42,7 +42,6 @@ export const StockRequests: CollectionConfig = {
             );
 
             const csvData = convertToCsv(stockData);
-            console.log('csvData', csvData);
 
             await emailService.sendStockReport(
               stockRequest.email,
