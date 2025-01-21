@@ -5,45 +5,55 @@ import { convertToCsv } from '@/utils/csvHelper';
 import { EmailService } from '@/services/emailService';
 import { StockRequest } from '@/payload-types';
 
+/**
+ * Collection configuration for handling stock requests.
+ * 
+ * This configuration defines fields for stock request data, hooks for processing requests,
+ * and integrates with external services to fetch stock data and send reports.
+ */
 export const StockRequests: CollectionConfig = {
-  slug: 'stock-requests',
+  slug: 'stock-requests', // Identifier for the collection
   admin: {
-    useAsTitle: 'companySymbol',
+    useAsTitle: 'companySymbol', // Display field in admin UI
   },
   hooks: {
     afterChange: [
+      /**
+       * Hook executed after a document change.
+       * 
+       * Handles stock requests by fetching historical data and sending it via email.
+       * 
+       * @param doc - The updated document
+       * @param req - Payload request object
+       * @param operation - Operation performed (e.g., "create")
+       */
       async ({ doc, req, operation }) => {
+        if (operation === 'create') {
+          const stockRequest = doc as StockRequest;
+          try {
+            const stockService = new StockService();
+            const emailService = new EmailService();
 
-        if(operation === 'create') {
-            // Type assertion for the document
-            const stockRequest = doc as StockRequest;
-            try {
-                const stockService = new StockService();
-                const emailService = new EmailService();
-                
-                // Get stock data - convert dates to ISO strings
-                const stockData = await stockService.getHistoricalData(
-                    stockRequest.companySymbol,
-                    convertDate(stockRequest.startDate),
-                    convertDate(stockRequest.endDate)
-                );
-                
-                // Convert to CSV and send email
-                const csvData = convertToCsv(stockData);
-                console.log('csvData', csvData);
-                await emailService.sendStockReport(
-                    stockRequest.email, 
-                    stockRequest.companySymbol, 
-                    convertDate(stockRequest.startDate),
-                    convertDate(stockRequest.endDate), 
-                    csvData
-                );
-           
-            } catch (error) {
-                // Update status to failed with error message
-                throw error;
-            }
-                
+            // Fetch historical stock data and send report
+            const stockData = await stockService.getHistoricalData(
+              stockRequest.companySymbol,
+              convertDate(stockRequest.startDate),
+              convertDate(stockRequest.endDate)
+            );
+
+            const csvData = convertToCsv(stockData);
+            console.log('csvData', csvData);
+
+            await emailService.sendStockReport(
+              stockRequest.email,
+              stockRequest.companySymbol,
+              convertDate(stockRequest.startDate),
+              convertDate(stockRequest.endDate),
+              csvData
+            );
+          } catch (error) {
+            throw error;
+          }
         }
       },
     ],
@@ -53,6 +63,12 @@ export const StockRequests: CollectionConfig = {
       name: 'companySymbol',
       type: 'text',
       required: true,
+      /**
+       * Validates the company symbol field.
+       * 
+       * @param value - The input value for the company symbol
+       * @returns A promise resolving to `true` if valid or an error message
+       */
       validate: async (value: string | null | undefined): Promise<string | true> => {
         if (typeof value !== 'string' || !value) return 'Invalid company symbol';
         const isValid = await isValidSymbol(value);
@@ -64,6 +80,15 @@ export const StockRequests: CollectionConfig = {
       name: 'startDate',
       type: 'date',
       required: true,
+      /**
+       * Validates the start date field.
+       * 
+       * Ensures the date is in the correct format, is not in the future, and is before the end date.
+       * 
+       * @param value - The input value for the start date
+       * @param data - Related data, including `endDate`
+       * @returns A promise resolving to `true` if valid or an error message
+       */
       validate: async (
         value: string | Date | null | undefined,
         { data }: { data: { endDate?: string | Date | null | undefined } }
@@ -103,6 +128,15 @@ export const StockRequests: CollectionConfig = {
       name: 'endDate',
       type: 'date',
       required: true,
+      /**
+       * Validates the end date field.
+       * 
+       * Ensures the date is in the correct format, is not in the future, and is after the start date.
+       * 
+       * @param value - The input value for the end date
+       * @param data - Related data, including `startDate`
+       * @returns A promise resolving to `true` if valid or an error message
+       */
       validate: async (
         value: string | Date | null | undefined,
         { data }: { data: { startDate?: string | Date | null | undefined } }
@@ -142,34 +176,19 @@ export const StockRequests: CollectionConfig = {
       name: 'email',
       type: 'email',
       required: true,
+      /**
+       * Validates the email field.
+       * 
+       * Ensures the email is in a valid format.
+       * 
+       * @param value - The input value for the email
+       * @returns `true` if valid or an error message
+       */
       validate: (value: string | null | undefined): string | true => {
         if (typeof value !== 'string' || !value) return 'Invalid email format';
         if (!isValidEmail(value)) return 'Invalid email format';
         return true;
       },
     },
-    {
-      name: 'status',
-      type: 'select',
-      options: [
-        { label: 'Pending', value: 'pending' },
-        { label: 'Processing', value: 'processing' },
-        { label: 'Completed', value: 'completed' },
-        { label: 'Failed', value: 'failed' },
-      ],
-      defaultValue: 'pending',
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'errorMessage',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-      },
-    }
   ],
-  
 };
