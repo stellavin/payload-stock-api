@@ -1,3 +1,4 @@
+import { convertDate } from '@/utils/validators';
 import axios from 'axios';
 
 export class StockService {
@@ -11,29 +12,6 @@ export class StockService {
     }
     this.apiKey = apiKey;
     this.apiHost = 'yh-finance.p.rapidapi.com';
-  }
-
-  async getHistoricalData(symbol: string, startDate: string, endDate: string) {
-    const response = await axios.get(
-      `https://yh-finance.p.rapidapi.com/stock/v3/get-chart`,
-      {
-        params: {
-          interval: '1d',
-          symbol,
-          range: this.calculateDateRange(startDate, endDate),
-          region: 'US',
-          includePrePost: false,
-          useYfid: true,
-          includeAdjustedClose: true,
-        },
-        headers: {
-          'X-RapidAPI-Key': this.apiKey,
-          'X-RapidAPI-Host': this.apiHost,
-        },
-      }
-    );
-
-    return this.transformStockData(response.data);
   }
 
   private calculateDateRange(startDate: string, endDate: string): string {
@@ -62,5 +40,32 @@ export class StockService {
       close: quotes.close[index],
       volume: quotes.volume[index],
     }));
+  }
+
+  async getHistoricalData(symbol: string, startDate: string, endDate: string) {
+
+    let newStartDate = convertDate(startDate);
+    let newEndDate = convertDate(endDate)
+
+    const response = await axios.get(
+      `https://yh-finance.p.rapidapi.com/stock/v3/get-chart`,
+      {
+        params: {
+          interval: '1d',
+          symbol,
+          range: this.calculateDateRange(newStartDate, newEndDate),
+          region: 'US',
+          includePrePost: false,
+          useYfid: true,
+          includeAdjustedClose: true,
+        },
+        headers: {
+          'X-RapidAPI-Key': this.apiKey,
+          'X-RapidAPI-Host': this.apiHost,
+        },
+      }
+    );
+
+    return this.transformStockData(response.data);
   }
 }

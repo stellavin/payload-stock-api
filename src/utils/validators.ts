@@ -13,13 +13,46 @@ export const isValidDate = (date: string): boolean => {
   return parsedDate.toString() !== 'Invalid Date';
 };
 
-export const isValidSymbol = async (symbol: string): Promise<boolean> => {
-  try {
-    const response = await axios.get(
-      'https://pkgstore.datahub.io/core/nasdaq-listings/nasdaq-listed_json/data/a5bc7580d6176d60ac0b2142ca8d7df6/nasdaq-listed_json.json'
-    );
-    return response.data.some((listing: any) => listing.Symbol === symbol);
-  } catch {
-    return false;
-  }
+export const convertDate = (date: string): string  => {
+    const parsedDate = new Date(date);
+    return parsedDate.toISOString().split('T')[0]; // Returns yyyy-mm-dd
 };
+
+export const isValidSymbol = async (symbol: string): Promise<boolean> => {
+    try {
+      const url = process.env.NASDAQ_API;
+      
+      if (!url) {
+        throw new Error('NASDAQ API URL is not defined');
+      }
+      
+      const response = await axios.get(url);
+      return response.data.some((listing: any) => listing.Symbol === symbol);
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  };
+
+  /**
+   * Fetch the company name for a given stock symbol from NASDAQ listings.
+   * 
+   * @param symbol - Stock symbol
+   * @returns Company name or the symbol if not found
+   */
+  export const getCompanyName = async (symbol: string): Promise<boolean> => {
+    try {
+      const url = process.env.NASDAQ_API;
+      
+      if (!url) {
+        throw new Error('NASDAQ API URL is not defined');
+      }
+      
+      const response = await axios.get(url);
+      const company = response.data.find((listing: any) => listing.Symbol === symbol);
+      return company ? company['Company Name'] : symbol;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  };
