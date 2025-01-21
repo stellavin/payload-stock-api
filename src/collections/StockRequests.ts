@@ -1,8 +1,22 @@
-import { CollectionConfig } from 'payload';
+import { CollectionConfig, Payload } from 'payload';
 import { isValidEmail, isValidDate, isValidSymbol } from '@/utils/validators';
 import { StockService } from '@/services/stockService';
 import { convertToCsv } from '@/utils/csvHelper';
 import { EmailService } from '@/services/emailService';
+
+// Define the type for our stock request document
+type StockRequest = {
+  id: string;
+  companySymbol: string;
+  startDate: Date;
+  endDate: Date;
+  email: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  errorMessage?: string;
+}
+
+// Define the type for updatable fields
+type UpdateableFields = Partial<Omit<StockRequest, 'id'>>;
 
 export const StockRequests: CollectionConfig = {
   slug: 'stock-requests',
@@ -22,80 +36,83 @@ export const StockRequests: CollectionConfig = {
       },
     },
     {
-        name: 'startDate',
-        type: 'date',
-        required: true,
-        validate: async (
-          value: Date | null | undefined,
-          { data }: { data: { endDate?: Date | null | undefined } }
-        ): Promise<string | true> => {
-          // Check if the value is null or undefined
-          if (value === null || value === undefined) {
-            return 'Start Date is required';
+      name: 'startDate',
+      type: 'date',
+      required: true,
+      validate: async (
+        value: string | Date | null | undefined,
+        { data }: { data: { endDate?: string | Date | null | undefined } }
+      ): Promise<string | true> => {
+        if (!value) return 'Start Date is required';
+
+        const startDate = typeof value === 'string' ? new Date(value) : value;
+        
+        if (!(startDate instanceof Date) || isNaN(startDate.getTime())) {
+          return 'Invalid Start Date format. Expected format: YYYY-MM-DD';
+        }
+
+        const startDateOnly = new Date(startDate.toISOString().split('T')[0]);
+        const today = new Date(new Date().toISOString().split('T')[0]);
+
+        if (startDateOnly > today) {
+          return 'Start Date cannot be in the future';
+        }
+
+        if (data.endDate) {
+          const endDate = typeof data.endDate === 'string' 
+            ? new Date(data.endDate) 
+            : data.endDate;
+          
+          if (endDate instanceof Date && !isNaN(endDate.getTime())) {
+            const endDateOnly = new Date(endDate.toISOString().split('T')[0]);
+            if (startDateOnly > endDateOnly) {
+              return 'Start Date must be before or equal to End Date';
+            }
           }
-      
-          // If value is a string, validate it using the isValidDate utility function
-        //   if (typeof value === 'string' && !isValidDate(value)) {
-        //     return 'Invalid Start Date format. Expected format: YYYY-mm-dd';
-        //   }
-      
-          // If value is a Date object, check if it's valid
-          if (value instanceof Date && isNaN(value.getTime())) {
-            return 'Invalid Start Date';
-          }
-      
-          // Ensure Start Date is not in the future
-          if (value instanceof Date && value > new Date()) {
-            return 'Start Date cannot be in the future';
-          }
-      
-          // Ensure Start Date is before or equal to End Date
-          if (data.endDate && value instanceof Date && value > data.endDate) {
-            return 'Start Date must be before or equal to End Date';
-          }
-      
-          return true;
-        },
-        // defaultValue: () => new Date().toISOString().split('T')[0],
+        }
+
+        return true;
       },
-      
-      {
-        name: 'endDate',
-        type: 'date',
-        required: true,
-        validate: async (
-          value: Date | null | undefined,
-          { data }: { data: { startDate?: Date | null | undefined } }
-        ): Promise<string | true> => {
-          // Check if the value is null or undefined
-          if (value === null || value === undefined) {
-            return 'End Date is required';
+    },
+    {
+      name: 'endDate',
+      type: 'date',
+      required: true,
+      validate: async (
+        value: string | Date | null | undefined,
+        { data }: { data: { startDate?: string | Date | null | undefined } }
+      ): Promise<string | true> => {
+        if (!value) return 'End Date is required';
+
+        const endDate = typeof value === 'string' ? new Date(value) : value;
+        
+        if (!(endDate instanceof Date) || isNaN(endDate.getTime())) {
+          return 'Invalid End Date format. Expected format: YYYY-MM-DD';
+        }
+
+        const endDateOnly = new Date(endDate.toISOString().split('T')[0]);
+        const today = new Date(new Date().toISOString().split('T')[0]);
+
+        if (endDateOnly > today) {
+          return 'End Date cannot be in the future';
+        }
+
+        if (data.startDate) {
+          const startDate = typeof data.startDate === 'string'
+            ? new Date(data.startDate)
+            : data.startDate;
+          
+          if (startDate instanceof Date && !isNaN(startDate.getTime())) {
+            const startDateOnly = new Date(startDate.toISOString().split('T')[0]);
+            if (endDateOnly < startDateOnly) {
+              return 'End Date must be after or equal to Start Date';
+            }
           }
-      
-          // If value is a string, validate it using the isValidDate utility function
-        //   if (typeof value === 'string' && !isValidDate(value)) {
-        //     return 'Invalid End Date format. Expected format: YYYY-mm-dd';
-        //   }
-      
-          // If value is a Date object, check if it's valid
-          if (value instanceof Date && isNaN(value.getTime())) {
-            return 'Invalid End Date';
-          }
-      
-          // Ensure End Date is not in the future
-          if (value instanceof Date && value > new Date()) {
-            return 'End Date cannot be in the future';
-          }
-      
-          // Ensure End Date is after or equal to Start Date
-          if (data.startDate && value instanceof Date && value < data.startDate) {
-            return 'End Date must be after or equal to Start Date';
-          }
-      
-          return true;
-        },
-        // defaultValue: () => new Date().toISOString().split('T')[0],
+        }
+
+        return true;
       },
+    },
     {
       name: 'email',
       type: 'email',
@@ -111,6 +128,7 @@ export const StockRequests: CollectionConfig = {
       type: 'select',
       options: [
         { label: 'Pending', value: 'pending' },
+        { label: 'Processing', value: 'processing' },
         { label: 'Completed', value: 'completed' },
         { label: 'Failed', value: 'failed' },
       ],
@@ -119,39 +137,79 @@ export const StockRequests: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    {
+      name: 'errorMessage',
+      type: 'text',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+      },
+    }
   ],
   hooks: {
     afterChange: [
-      async ({ doc }) => {
-        console.log('doc--------==========', doc);
-        // Process the stock request
+      async ({ doc, req, operation }) => {
+        // Type assertion for the document
+        const stockRequest = doc as StockRequest;
+        
+        // Only process if it's a create operation or status is pending
+        if (operation !== 'create' && stockRequest.status !== 'pending') {
+          return;
+        }
+
+        const payload = req.payload as Payload;
+
         try {
+          // Update status to processing
+          await payload.update<any, UpdateableFields>({
+            collection: 'stock-requests',
+            id: stockRequest.id,
+            data: {
+              status: 'processing',
+              errorMessage: null
+            },
+          });
+
           const stockService = new StockService();
           const emailService = new EmailService();
           
+          // Get stock data - convert dates to ISO strings
           const stockData = await stockService.getHistoricalData(
-            doc.companySymbol,
-            doc.startDate,
-            doc.endDate
+            stockRequest.companySymbol,
+            stockRequest.startDate.toISOString().split('T')[0],
+            stockRequest.endDate.toISOString().split('T')[0]
           );
           
-          const csvData =  convertToCsv(stockData);
-          console.log('csvData--------==========', csvData);
-          await emailService.sendStockReport(doc.email, doc.companySymbol, doc.startDate, doc.endDate, csvData);
+          // Convert to CSV and send email
+          const csvData = convertToCsv(stockData);
+          await emailService.sendStockReport(
+            stockRequest.email, 
+            stockRequest.companySymbol, 
+            stockRequest.startDate.toISOString().split('T')[0], 
+            stockRequest.endDate.toISOString().split('T')[0], 
+            csvData
+          );
           
           // Update status to completed
-        //   await payload.update({
-        //     collection: 'stock-requests',
-        //     id: doc.id,
-        //     data: { status: 'completed' },
-        //   });
+          await payload.update<any, UpdateableFields>({
+            collection: 'stock-requests',
+            id: stockRequest.id,
+            data: {
+              status: 'completed',
+              errorMessage: null
+            },
+          });
         } catch (error) {
-          // Update status to failed
-        //   await payload.update({
-        //     collection: 'stock-requests',
-        //     id: doc.id,
-        //     data: { status: 'failed' },
-        //   });
+          // Update status to failed with error message
+          await payload.update<any, UpdateableFields>({
+            collection: 'stock-requests',
+            id: stockRequest.id,
+            data: {
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : 'An unexpected error occurred'
+            },
+          });
+          
           throw error;
         }
       },
