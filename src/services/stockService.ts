@@ -2,17 +2,6 @@ import { convertDate } from '@/utils/validators';
 import axios from 'axios';
 
 export class StockService {
-  private readonly apiKey: string;
-  private readonly apiHost: string;
-
-  constructor() {
-    const apiKey = process.env.RAPID_API_KEY;
-    if (!apiKey) {
-      throw new Error('RAPID_API_KEY is required but not defined.');
-    }
-    this.apiKey = apiKey;
-    this.apiHost = 'yh-finance.p.rapidapi.com';
-  }
 
   private calculateDateRange(startDate: string, endDate: string): string {
     // Calculate the appropriate range parameter based on start and end dates
@@ -28,7 +17,7 @@ export class StockService {
   }
 
   private transformStockData(rawData: any) {
-    // Transform the Yahoo Finance data into our required format
+    // Transform the Yahoo Finance data the required format
     const timestamps = rawData.chart.result[0].timestamp;
     const quotes = rawData.chart.result[0].indicators.quote[0];
 
@@ -45,10 +34,14 @@ export class StockService {
   async getHistoricalData(symbol: string, startDate: string, endDate: string) {
 
     let newStartDate = convertDate(startDate);
-    let newEndDate = convertDate(endDate)
+    let newEndDate = convertDate(endDate);
+    let url = process.env.RAPID_API_URL;
 
-    const response = await axios.get(
-      `https://yh-finance.p.rapidapi.com/stock/v3/get-chart`,
+    if (!url) {
+      throw new Error('RAPID_API_URL environment variable is not defined');
+    }
+
+    const response = await axios.get(url,
       {
         params: {
           interval: '1d',
@@ -60,8 +53,8 @@ export class StockService {
           includeAdjustedClose: true,
         },
         headers: {
-          'X-RapidAPI-Key': this.apiKey,
-          'X-RapidAPI-Host': this.apiHost,
+          'X-RapidAPI-Key': process.env.RAPID_API_KEY,
+          'X-RapidAPI-Host': process.env.API_HOST,
         },
       }
     );

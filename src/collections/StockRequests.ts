@@ -3,20 +3,7 @@ import { isValidEmail, isValidDate, isValidSymbol, convertDate } from '@/utils/v
 import { StockService } from '@/services/stockService';
 import { convertToCsv } from '@/utils/csvHelper';
 import { EmailService } from '@/services/emailService';
-
-// Define the type for our stock request document
-type StockRequest = {
-  id: string;
-  companySymbol: string;
-  startDate: string;
-  endDate: string;
-  email: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  errorMessage?: string;
-}
-
-// Define the type for updatable fields
-type UpdateableFields = Partial<Omit<StockRequest, 'id'>>;
+import { StockRequest } from '@/payload-types';
 
 export const StockRequests: CollectionConfig = {
   slug: 'stock-requests',
